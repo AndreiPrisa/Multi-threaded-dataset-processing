@@ -1,0 +1,107 @@
+=====================================README=====================================
+Prisacaru Andrei-Nicolae
+333CC
+================================================================================
+
+	Pentru realizarea temei, mi-am definit mai multe fisiere java,
+acestea fiind urmatoarele:
+
+================================================================================
+================================================================================
+- Utils.java : contine variabile si metode utilizate in rezolvarea temei
+	- getFibonacciNumber -> functie pentru a obtine un numar fibonacci, se
+	foloseste de getFibonacciRecursive in caz ca nu avem deja numarul calculat
+
+	- extractFileName -> metoda pentru a obtine numele fisierului fiind dat un
+	path
+
+	- readInputFiles -> functie pentru a citi datele din fisierul de intrare
+	specificat si returneaza pereche dintre dimensiunea fragmentului si
+	lista numelor fisierelor din care vom citi cu MapTask
+
+	- writeToFile -> functie generica pentru a scrie intr-un fisier specificat
+	- getFileSize -> functie pentru a afla dimensiunea unui fisier
+
+================================================================================
+================================================================================
+
+- Tema2.java : clasa de baza in care avem functia main, care executa Map-Reduce
+pe cazul particular al temei. Citim cu readInputFiles fisierul de intrare, si
+retinem in fileNames ce fisiere citim cu Map si in chunkDimension dimensiunea
+fragmentului.
+	Pentru fiecare fisier din fileNames generam taskuri MyMapTask de
+dimensiune chunkDimension sau mai mica. 
+	Cu ExecutorService cu FixedThreadPool numarul de workeri specificat ca 
+parametru utilizam invokeAll pentru a executa MyMapTasks, rezultatele 
+retinandu-le in List<Future<MapOutput>> futureMapList. 
+ 	Pentru etapa Reduce, combinam rezultatele MapOutput dupa fisierul asupra
+caruia a fost aplicata operatia Map si generam MyReduceTask-urile pe care
+le executam ca la Map. In final sortam rezultatele dupa criteriul specificat
+si scriem in fisierul de output cu writeToFile din Utils.
+
+================================================================================
+================================================================================
+
+- MyPair.java : contine clasele generice MyPair<U, V> si MyTriplet<U, V, T>
+si clasele pentru outputurile particulare de Map si Reduce, respectiv
+MapOutput si ReduceOutput:
+	- MapOutput -> mosteneste MyTriplet avand:
+		first: numele fisierului
+		second: hashMap cu lungimea si numarul de cuvinte de aceasta lungime
+		third: lista de cuvinte de lungime maxima
+
+	- ReduceOutput -> clasa ce contine:
+		- numele documentului
+		- rangul documentului
+		- lungimea cea mai mare
+		- cate cuvinte din document au cea mai mare lungime
+
+================================================================================
+================================================================================
+
+- MyGenericTask.java : contine mai multe clase, care au urmatoarea
+ierarhie:
+MyGenericTask<T> --> GenericMapTask<I, O> ---> MyMapTask
+				|
+				|
+				 --> GenericReduceTask<I, O> --> MyReduceTask
+
+
+Urmatoarele sunt clasele abstracte folosite de cele concrete:
+
+	- MyGenericTask<T> -> implementeaza interfata Callable, suprascrie final 
+call si impune claselor care o mostenesc sa implementeze execute(), functie in
+care este scrisa logica task-ului si returneaza tipul generic T.
+
+	- GenericMapTask<I, O> -> clasa abstracta generica pentru operatiile Map,
+prezinta doua metode in plus: {I generateInput()} utilizata pentru a returna
+datele de tip I asupra carora se va aplica functia {O map(I input)} in execute.
+
+	- GenericReduceTask<I, O> -> clasa abstracta generica pentru operatiile
+Reduce, prezinta doua metode in plus:  {I reduceInput()} folosita pentru etapa
+de combinare a rezultatelor din etapa Map si functia {O process(I input)} care
+corespunde etapei de procesare a datelor.
+
+Clasele pentru cazul particular al temei:
+
+	- MyMapTask -> mosteneste GenericMapTask<String[], MapOutput>. 
+	In generateInput - reajustam fragmentul de citit, verificand daca suntem
+la mijlocul cuvantului (ne uitam la offset - 1). Analog cand suntem la final
+de fragment. Returnam lista de cuvinte din fragment (obtinuta cu String.split).
+	In map - strabatem lista de cuvinte de la etapa generateInput si in wordMap
+adaugam lungimea cuvantului si incrementam numarul de cuvinte de aceasta
+lungime. Simultan retinem si cea mai mare lungime. Parcurgem din nou hashMapul
+pentru a compune lista cu acele cuvinte de lungime maxima. Returnam MapOutput.
+
+	- MyReduceTask -> mosteneste GenericReduceTask<MapOutput, ReduceOutput>.
+	In reduceInput - compunem rezultatele de la etapa Map, comasand intr-un
+singur dictionar lungimile cu aparitiile si retine cuvintele de lungime maxima.
+Intoarce un nou MapOutput actualizat.
+	In process -> calculam rangul cu formula ceruta, folosindu-ne de 
+getFibonacciNumber din Utils.
+
+================================================================================
+================================================================================
+
+	
+		
